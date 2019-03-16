@@ -1,5 +1,6 @@
 package com.example.geoquiz;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -14,6 +15,7 @@ public class MainActivity extends AppCompatActivity
 {
     private static final String TAG = "QuizActivity";
     private static final String KEY_INDEX = "index";
+    private static final int REQUEST_CODE_CHEAT = 0;
 
     private Button mTrueButton;
     private Button mFalseButton;
@@ -32,6 +34,7 @@ public class MainActivity extends AppCompatActivity
     };
 
     private int mCurrentIndex = 0;
+    private boolean mIsCheater;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -103,9 +106,10 @@ public class MainActivity extends AppCompatActivity
             {
                 boolean answerIsTrue = mQuestionBank[mCurrentIndex].isAnswerTrue();
                 Intent intent = CheatActivity.newIntent(MainActivity.this, answerIsTrue);
-                startActivity(intent);
+                startActivityForResult(intent, REQUEST_CODE_CHEAT);
             }
         });
+        mIsCheater = false;
         updateQuestion(0);
     }
 
@@ -146,6 +150,20 @@ public class MainActivity extends AppCompatActivity
         Log.d(TAG, "onDestroy() called");
     }
 
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data)
+    {
+        if (resultCode == Activity.RESULT_OK)
+        {
+            if (requestCode == REQUEST_CODE_CHEAT)
+            {
+                if (data != null)
+                {
+                    mIsCheater = CheatActivity.wasAnswerShown(data);
+                }
+            }
+        }
+    }
+
     private void updateQuestion(int step)
     {
         Log.i(TAG, String.format("OldIndex=%d", mCurrentIndex));
@@ -163,12 +181,21 @@ public class MainActivity extends AppCompatActivity
 
         int question = mQuestionBank[mCurrentIndex].getTextResId();
         mQuestionTextView.setText(question);
+        mIsCheater = false;
     }
 
     private void checkAnswer(boolean userPressedTrue)
     {
         boolean answerIsTrue = mQuestionBank[mCurrentIndex].isAnswerTrue();
-        int messageResId = userPressedTrue == answerIsTrue ? R.string.correct_toast : R.string.incorrect_toast;
+        int messageResId;
+        if (mIsCheater)
+        {
+            messageResId = R.string.judgment_toast;
+        }
+        else
+        {
+            messageResId = userPressedTrue == answerIsTrue ? R.string.correct_toast : R.string.incorrect_toast;
+        }
         Toast.makeText(this, messageResId, Toast.LENGTH_SHORT).show();
     }
 }
